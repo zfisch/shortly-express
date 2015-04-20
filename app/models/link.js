@@ -8,6 +8,7 @@ var Link = db.Model.extend({
   defaults: {
     visits: 0
   },
+  //MAYBEDO: add support for user_id field? idk if we have to...
   clicks: function() {
     return this.hasMany(Click);
   },
@@ -17,7 +18,10 @@ var Link = db.Model.extend({
       shasum.update(model.get('url'));
       model.set('code', shasum.digest('hex').slice(0, 5));
     });
+  },
+  user: function() {
+    return this.belongsTo(User, 'user_id');
   }
-});
+});////
 
 module.exports = Link;

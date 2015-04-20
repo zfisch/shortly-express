@@ -22,26 +22,75 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var isSignedIn = function(){
+  return false;
+}
 
-app.get('/', 
+app.get('/',
 function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
   res.render('index');
 });
 
-app.get('/create', 
+app.get('/create',
 function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
   res.render('index');
 });
 
-app.get('/links', 
+app.get('/login',
 function(req, res) {
+  if(isSignedIn())
+    return res.redirect('/');
+  res.render('login');
+});
+
+app.get('/signup',
+function(req, res) {
+  if(isSignedIn())
+    return res.redirect('/');
+  res.render('signup');
+});
+
+app.get('/omg',
+function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
+  res.send('<img src="something.gif">');
+});
+
+
+app.get('/signout',
+function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
+  res.send('nothing to see here');
+  //TODO: Signout
+});
+
+app.get('/links',
+function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.post('/login', function(req, res){
+  //
+});
+
+app.post('/signup', function(req, res){
+  //
+});
+
+app.post('/links',
 function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
@@ -87,6 +136,8 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
+  if(!isSignedIn())
+    return res.redirect('/login');
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {
       res.redirect('/');
