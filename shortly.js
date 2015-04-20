@@ -83,8 +83,50 @@ app.post('/login', function(req, res){
   //
 });
 
+
+var bcrypt = require('bcrypt-nodejs');
+
 app.post('/signup', function(req, res){
-  //
+  console.log(req.body);
+  var username = req.body.username;
+  var password = req.body.password;
+
+  //TODO: double check syntax for isvalid
+  if (false){//!util.isValidUsername(username)) {
+    console.log('Not a valid username: ', username);
+    return res.send(404);
+  }
+  if (false){//(!util.isValidPassword(password)) {
+    console.log('Not a valid password: ', password);
+    return res.send(404);
+  }
+
+  new User({ username: username }).fetch().then(function(found) {
+    if (found) {
+      //TODO: send to signup, add some sorta way to tell user they are dumb
+      res.send(400, "user already exists");
+    } else {
+      console.log('pre salt and hash gen');
+      bcrypt.genSalt(10, function(err, salt) {
+      console.log('mmm... salt...');
+        bcrypt.hash(password, salt, function(){}, function(err, hash) {
+          console.log('created hash: ', hash);
+          var user = new User({
+            username: username,
+            password: hash,
+            salt: salt
+          });
+          user.save().then(function(newUser) {
+            Users.add(newUser);
+            console.log('saved and added user: ', newUser);
+            res.redirect('/');
+          });
+        });
+      });
+    }
+  });
+
+
 });
 
 app.post('/links',

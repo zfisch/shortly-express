@@ -4,7 +4,6 @@ var Promise = require('bluebird');
 
 var User = db.Model.extend({
   tableName: 'users',
-  hasTimestamps: true,
 
   links: function() {
     return this.hasMany(Link);
@@ -12,7 +11,6 @@ var User = db.Model.extend({
 
   initialize: function(){
     this.on('creating', function(model, attrs, options){
-      //do all that salting crap here
     });
   },
 });

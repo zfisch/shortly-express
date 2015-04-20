@@ -22,6 +22,6 @@ var Link = db.Model.extend({
   user: function() {
     return this.belongsTo(User, 'user_id');
   }
-});////
+});
 
 module.exports = Link;
