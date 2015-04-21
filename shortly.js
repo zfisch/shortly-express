@@ -2,6 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var session = require('express-session')
 
 
 var db = require('./app/config');
@@ -22,49 +23,47 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
-var isSignedIn = function(){
-  return false;
-}
+app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 600000 }}))
 
 app.get('/',
 function(req, res) {
-  if(!isSignedIn())
+  if(!req.session.user)
     return res.redirect('/login');
   res.render('index');
 });
 
 app.get('/create',
 function(req, res) {
-  if(!isSignedIn())
+  if(!req.session.user)
     return res.redirect('/login');
   res.render('index');
 });
 
 app.get('/login',
 function(req, res) {
-  if(isSignedIn())
+  if(req.session.user)
     return res.redirect('/');
   res.render('login');
 });
 
 app.get('/signup',
 function(req, res) {
-  if(isSignedIn())
+  if(req.session.user)
     return res.redirect('/');
   res.render('signup');
 });
 
 app.get('/omg',
 function(req, res) {
-  if(!isSignedIn())
-    return res.redirect('/login');
-  res.send('<img src="something.gif">');
+  req.session.views = req.session.views || 0;
+  req.session.views++;
+  res.send('"' + req.session.views + '"');
 });
 
 
 app.get('/signout',
 function(req, res) {
-  if(!isSignedIn())
+  if(!req.session.user)
     return res.redirect('/login');
   res.send('nothing to see here');
   //TODO: Signout
@@ -72,66 +71,59 @@ function(req, res) {
 
 app.get('/links',
 function(req, res) {
-  if(!isSignedIn())
+  if(!req.session.user)
     return res.redirect('/login');
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/login', function(req, res){
-  //
-});
-
-
-var bcrypt = require('bcrypt-nodejs');
-
-app.post('/signup', function(req, res){
-  console.log(req.body);
+app.post('/login',
+function(req, res){
   var username = req.body.username;
   var password = req.body.password;
 
-  //TODO: double check syntax for isvalid
-  if (false){//!util.isValidUsername(username)) {
-    console.log('Not a valid username: ', username);
-    return res.send(404);
-  }
-  if (false){//(!util.isValidPassword(password)) {
-    console.log('Not a valid password: ', password);
-    return res.send(404);
-  }
-
-  new User({ username: username }).fetch().then(function(found) {
-    if (found) {
-      //TODO: send to signup, add some sorta way to tell user they are dumb
-      res.send(400, "user already exists");
+  var user = new User({username: username});
+  user.fetch().then(function(found){
+    if(found){
+      user.ifIsPassword( password, function( valid ){
+        if(valid){
+          //TODO: SESSION CRAP
+          req.session.user=user;
+          res.redirect('/');
+        } else {
+          res.render('shame');
+        }
+      });
     } else {
-      console.log('pre salt and hash gen');
-      bcrypt.genSalt(10, function(err, salt) {
-      console.log('mmm... salt...');
-        bcrypt.hash(password, salt, function(){}, function(err, hash) {
-          console.log('created hash: ', hash);
-          var user = new User({
-            username: username,
-            password: hash,
-            salt: salt
-          });
-          user.save().then(function(newUser) {
-            Users.add(newUser);
-            console.log('saved and added user: ', newUser);
-            res.redirect('/');
-          });
-        });
+      res.render('shame');
+    }
+  });
+});
+
+app.post('/signup',
+function(req, res){
+  var username = req.body.username;
+  var password = req.body.password;
+  //TODO: Check if username and password are valid
+  var user = new User({ username: username });
+  user.fetch().then(function(found) {
+    if (found) {
+      res.render('shame');
+    } else {
+      user.set('password',password);
+      user.save().then(function(newUser) {
+        Users.add(newUser);
+        res.redirect('/');
       });
     }
   });
-
-
 });
 
 app.post('/links',
 function(req, res) {
-  if(!isSignedIn())
+  console.log(req.session.user.id);
+  if(!req.session.user)
     return res.redirect('/login');
   var uri = req.body.url;
 
@@ -153,7 +145,8 @@ function(req, res) {
         var link = new Link({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: req.session.user.id
         });
 
         link.save().then(function(newLink) {
@@ -177,8 +170,9 @@ function(req, res) {
 // If the short-code doesn't exist, send the user to '/'
 /************************************************************/
 
-app.get('/*', function(req, res) {
-  if(!isSignedIn())
+app.get('/*',
+function(req, res) {
+  if(!req.session.user)
     return res.redirect('/login');
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {

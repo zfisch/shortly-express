@@ -1,0 +1,11 @@
+Implement /signout which ends session
+dispay links that user created
+when creating links, link it to the user who created it.
+
+
+MAYBE:
+Add a checkUser helper to all server routes that require login, redirect the user to a login page as needed. Require users to log in to see shortened links and create new ones. Do NOT require the user to login when using a previously shortened link.
+
+Using HTML5 pushstate, keep the URL in the address bar in sync with what page the user is viewing.
+
+Find an image used on the site of the original url and use that instead of the generic icon (hint: use a regular expression or a parser to analyze the HTML document). How will you store this new information?
