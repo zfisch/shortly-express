@@ -8,8 +8,19 @@ var User = db.Model.extend({
   links: function() {
     return this.hasMany(Link);
   },
+  setPassword: function( password, callback ){
+    var that=this;
+    bcrypt.genSalt(10, function(err, salt) {
+      bcrypt.hash(password, salt, function(){}, function(err, hash) {
+        that.set('password', hash);
+        that.set('salt', salt);
+        that.save();
+        callback();
+      });
+    });
+  },
   ifIsPassword: function( password, callback ){
-    console.log(this);
+    console.log("checking password on: ", this);
     var salt=this.attributes['salt'];
 
     var that=this;
@@ -17,19 +28,16 @@ var User = db.Model.extend({
       callback( that.attributes['password'] === hash );
     });
   },
-  on_saving: function(model, attrs, options){
+  onSaving: function(model, attrs, options){
     //TODO: set salt seed to something random. Time works.
-    bcrypt.genSalt(new Date().getTime(), function(err, salt) {
-      bcrypt.hash(model.get('password'), salt, function(){}, function(err, hash) {
-        model.set('password', hash);
-        model.set('salt', salt);
-        console.log(model.get('password'));
-      });
-    });
+    //new Date().getTime()
+  },
+  onSaved: function(model, attrs, options){
+    console.log("SAVED! ", model);
   },
 
   initialize: function(){
-    this.on('saving', this.on_saving, this);
+    this.on('saving', this.onSaving, this);
   },
 });
 

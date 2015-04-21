@@ -63,20 +63,23 @@ function(req, res) {
 
 app.get('/signout',
 function(req, res) {
-  if(!req.session.user)
-    return res.redirect('/login');
-  res.send('nothing to see here');
-  //TODO: Signout
+  if(req.session.user)
+    req.session.destroy();
+  res.redirect('/login');
 });
 
 app.get('/links',
 function(req, res) {
   if(!req.session.user)
     return res.redirect('/login');
-  Links.reset().fetch().then(function(links) {
+  Links.reset()
+    .query('where', 'user_id', '=', req.session.user.id)
+    .fetch()
+    .then(function(links) {
     res.send(200, links.models);
   });
 });
+
 
 app.post('/login',
 function(req, res){
@@ -84,11 +87,12 @@ function(req, res){
   var password = req.body.password;
 
   var user = new User({username: username});
+  console.log('query user: ', user);
   user.fetch().then(function(found){
     if(found){
+      console.log('found user: ', user);
       user.ifIsPassword( password, function( valid ){
         if(valid){
-          //TODO: SESSION CRAP
           req.session.user=user;
           res.redirect('/');
         } else {
@@ -111,8 +115,7 @@ function(req, res){
     if (found) {
       res.render('shame');
     } else {
-      user.set('password',password);
-      user.save().then(function(newUser) {
+      user.setPassword(password, function(newUser) {
         Users.add(newUser);
         res.redirect('/');
       });
@@ -122,7 +125,6 @@ function(req, res){
 
 app.post('/links',
 function(req, res) {
-  console.log(req.session.user.id);
   if(!req.session.user)
     return res.redirect('/login');
   var uri = req.body.url;
@@ -157,12 +159,6 @@ function(req, res) {
     }
   });
 });
-
-/************************************************************/
-// Write your authentication routes here
-/************************************************************/
-
-
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail

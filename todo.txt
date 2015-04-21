@@ -1,6 +1,6 @@
-Implement /signout which ends session
-dispay links that user created
-when creating links, link it to the user who created it.
+[√] Implement /signout which ends session
+[√] dispay links that user created
+[√] when creating links, link it to the user who created it.
 
 
 MAYBE:
